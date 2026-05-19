@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { BookText, Mic, MicOff, Pin, PlusCircle, Sparkles, Volume2 } from "lucide-react";
+import { BookText, Mic, MicOff, Pin, PlusCircle, Sparkles, Square, Volume2 } from "lucide-react";
 import api from "../services/api";
 import QuestionAccordion from "../components/QuestionAccordion";
 import { formatDate } from "../utils/formatters";
@@ -45,6 +45,7 @@ function SessionDetailPage() {
   const [evaluating, setEvaluating] = useState(false);
   const [addingMore, setAddingMore] = useState(false);
   const recognitionRef = useRef(null);
+  const speechUtteranceRef = useRef(null);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -109,11 +110,26 @@ function SessionDetailPage() {
 
     setVoiceError("");
     const utterance = new SpeechSynthesisUtterance(question.question);
+    speechUtteranceRef.current = utterance;
     utterance.onstart = () => setSpeakingId(question._id);
-    utterance.onend = () => setSpeakingId(null);
-    utterance.onerror = () => setSpeakingId(null);
+    utterance.onend = () => {
+      setSpeakingId(null);
+      speechUtteranceRef.current = null;
+    };
+    utterance.onerror = () => {
+      setSpeakingId(null);
+      speechUtteranceRef.current = null;
+    };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
+  };
+
+  const stopQuestionAudio = () => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    speechUtteranceRef.current = null;
+    setSpeakingId(null);
   };
 
   const startVoiceAnswer = (questionId, options = {}) => {
@@ -171,16 +187,19 @@ function SessionDetailPage() {
     }
 
     const utterance = new SpeechSynthesisUtterance(question.question);
+    speechUtteranceRef.current = utterance;
     utterance.onstart = () => {
       setSpeakingId(question._id);
       setVoiceError("");
     };
     utterance.onend = () => {
       setSpeakingId(null);
+      speechUtteranceRef.current = null;
       startVoiceAnswer(question._id);
     };
     utterance.onerror = () => {
       setSpeakingId(null);
+      speechUtteranceRef.current = null;
       setVoiceError("The AI voice could not play. Please try again.");
     };
 
@@ -244,7 +263,7 @@ function SessionDetailPage() {
           </div>
           {session.resumeProfile?.summary ? (
             <div className="mt-6 rounded-[24px] border border-brand-100 bg-brand-50 p-5">
-              <p className="text-sm font-semibold text-brand-700">Resume-aware session</p>
+              <p className="text-sm font-semibold text-brand-700">Resume tech summary</p>
               <p className="mt-2 text-sm leading-7 text-slate-700">{session.resumeProfile.summary}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {session.resumeProfile.skills?.slice(0, 6).map((skill) => (
@@ -253,6 +272,15 @@ function SessionDetailPage() {
                   </span>
                 ))}
               </div>
+              {session.resumeProfile.projects?.length ? (
+                <div className="mt-4 space-y-2">
+                  {session.resumeProfile.projects.slice(0, 3).map((project) => (
+                    <p key={project} className="text-sm leading-6 text-slate-600">
+                      • {project}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -276,6 +304,7 @@ function SessionDetailPage() {
                 onTogglePin={() => togglePin(question._id)}
                 onExplain={() => requestExplanation(question._id)}
                 onSpeak={() => speakQuestion(question)}
+                onStopSpeak={stopQuestionAudio}
                 onStartAnswer={() => startVoiceAnswer(question._id)}
                 isExplaining={explanationLoadingId === question._id}
                 speakingId={speakingId}
@@ -300,11 +329,11 @@ function SessionDetailPage() {
                 <p className="mt-3 text-sm text-slate-500">Deep explanation, answer review, and readiness scoring.</p>
               </div>
               <button
-                onClick={() => speakQuestion(activeQuestion)}
+                onClick={speakingId === activeQuestion._id ? stopQuestionAudio : () => speakQuestion(activeQuestion)}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-500"
-                title="Ask question aloud"
+                title={speakingId === activeQuestion._id ? "Stop question audio" : "Ask question aloud"}
               >
-                <Volume2 className="h-5 w-5" />
+                {speakingId === activeQuestion._id ? <Square className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </button>
             </div>
 
@@ -326,6 +355,12 @@ function SessionDetailPage() {
                     <Volume2 className="mr-2 h-4 w-4" />
                     Ask question
                   </button>
+                  {speakingId === activeQuestion._id ? (
+                    <button onClick={stopQuestionAudio} className="secondary-button">
+                      <Square className="mr-2 h-4 w-4" />
+                      Stop audio
+                    </button>
+                  ) : null}
                   {listeningId === activeQuestion._id ? (
                     <button onClick={stopVoiceAnswer} className="primary-button">
                       <MicOff className="mr-2 h-4 w-4" />

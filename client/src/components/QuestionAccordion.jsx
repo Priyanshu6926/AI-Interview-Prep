@@ -1,4 +1,4 @@
-import { ChevronDown, Mic, Pin, PinOff, Sparkles, Volume2 } from "lucide-react";
+import { ChevronDown, Mic, Pin, PinOff, Sparkles, Square, Volume2 } from "lucide-react";
 import clsx from "clsx";
 
 function QuestionAccordion({
@@ -8,6 +8,7 @@ function QuestionAccordion({
   onTogglePin,
   onExplain,
   onSpeak,
+  onStopSpeak,
   onStartAnswer,
   isExplaining,
   speakingId,
@@ -33,14 +34,14 @@ function QuestionAccordion({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={onSpeak}
+            onClick={speakingId === question._id ? onStopSpeak : onSpeak}
             className={clsx(
               "inline-flex h-10 w-10 items-center justify-center rounded-xl border transition",
               speakingId === question._id ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-500"
             )}
-            title="Ask question aloud"
+            title={speakingId === question._id ? "Stop audio" : "Ask question aloud"}
           >
-            <Volume2 className="h-4 w-4" />
+            {speakingId === question._id ? <Square className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
           <button
             onClick={onStartAnswer}

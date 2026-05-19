@@ -1,16 +1,29 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Clock3, Code2, Pin, PlusCircle, Sparkles, TrendingUp, UsersRound } from "lucide-react";
+import { ArrowRight, Clock3, Code2, Pin, PlusCircle, Sparkles, Trash2, TrendingUp, UsersRound } from "lucide-react";
 import { useSessions } from "../hooks/useSessions";
 import { badgeText, formatDate } from "../utils/formatters";
+import api from "../services/api";
 
 function DashboardPage() {
-  const { sessions, loading, error } = useSessions();
+  const { sessions, loading, error, removeSession } = useSessions();
   const pinnedCount = sessions.reduce((sum, session) => sum + session.questions.filter((item) => item.isPinned).length, 0);
   const attempts = sessions.flatMap((session) => session.questions.flatMap((item) => item.attempts || []));
   const averageScore = attempts.length
     ? Math.round(attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0) / attempts.length)
     : null;
   const latestTrend = attempts.slice(-5).map((attempt) => attempt.score || 0);
+
+  const handleDeleteSession = async (event, sessionId) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!window.confirm("Delete this session? This will remove its questions and practice history.")) {
+      return;
+    }
+
+    await api.delete(`/sessions/${sessionId}`);
+    removeSession(sessionId);
+  };
 
   return (
     <div className="grid gap-6 xl:grid-cols-[0.86fr_1.14fr]">
@@ -115,13 +128,15 @@ function DashboardPage() {
           ) : null}
 
           {sessions.map((session) => (
-            <Link
-              to={`/app/sessions/${session._id}`}
+            <div
               key={session._id}
-              className="flex flex-col gap-4 rounded-[28px] border border-slate-100 bg-white p-5 transition hover:border-brand-200 hover:shadow-soft sm:flex-row sm:items-center sm:justify-between"
+              className="rounded-[28px] border border-slate-100 bg-white p-5 transition hover:border-brand-200 hover:shadow-soft"
             >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-xl font-semibold text-slate-950">{session.role}</h3>
+                <Link to={`/app/sessions/${session._id}`} className="text-xl font-semibold text-slate-950 hover:text-brand-600">
+                  {session.role}
+                </Link>
                 <p className="mt-1 text-sm text-slate-500">{session.focusAreas.join(", ")}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">{session.experience} years</span>
@@ -142,9 +157,19 @@ function DashboardPage() {
                   <Pin className="h-4 w-4" />
                   {session.questions.filter((item) => item.isPinned).length}
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-400" />
+                <Link to={`/app/sessions/${session._id}`} className="inline-flex items-center">
+                  <ArrowRight className="h-4 w-4 text-slate-400" />
+                </Link>
+                <button
+                  onClick={(event) => handleDeleteSession(event, session._id)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 text-rose-500 transition hover:bg-rose-50"
+                  title="Delete session"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-            </Link>
+              </div>
+            </div>
           ))}
         </div>
       </section>

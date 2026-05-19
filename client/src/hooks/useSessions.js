@@ -23,5 +23,9 @@ export function useSessions() {
     fetchSessions();
   }, [fetchSessions]);
 
-  return { sessions, loading, error, refetch: fetchSessions };
+  const removeSession = (sessionId) => {
+    setSessions((current) => current.filter((session) => session._id !== sessionId));
+  };
+
+  return { sessions, loading, error, refetch: fetchSessions, removeSession };
 }

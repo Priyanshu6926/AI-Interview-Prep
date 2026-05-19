@@ -3,6 +3,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 import {
   createSession,
+  deleteSession,
   evaluateQuestion,
   explainQuestion,
   generateMoreQuestions,
@@ -18,6 +19,7 @@ router.use(protect);
 router.get("/", getSessions);
 router.post("/", upload.single("resume"), createSession);
 router.get("/:sessionId", getSessionById);
+router.delete("/:sessionId", deleteSession);
 router.post("/:sessionId/questions/generate-more", generateMoreQuestions);
 router.patch("/:sessionId/questions/:questionId/pin", togglePin);
 router.post("/:sessionId/questions/:questionId/explain", explainQuestion);

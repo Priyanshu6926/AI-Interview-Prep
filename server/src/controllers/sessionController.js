@@ -100,6 +100,21 @@ export async function getSessionById(req, res, next) {
   }
 }
 
+export async function deleteSession(req, res, next) {
+  try {
+    const session = await Session.findOneAndDelete({ _id: req.params.sessionId, user: req.user._id });
+
+    if (!session) {
+      res.status(404);
+      throw new Error("Session not found.");
+    }
+
+    res.json({ message: "Session deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function togglePin(req, res, next) {
   try {
     const session = await Session.findOne({ _id: req.params.sessionId, user: req.user._id });
@@ -168,7 +183,8 @@ export async function evaluateQuestion(req, res, next) {
     const evaluation = await evaluateReadiness({
       question: question.question,
       answer: submittedAnswer,
-      role: session.role
+      role: session.role,
+      referenceAnswer: question.answer
     });
 
     question.userAnswer = submittedAnswer;
